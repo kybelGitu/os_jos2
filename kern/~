@@ -96,33 +96,23 @@ boot_alloc(uint32_t n)
 		extern char end[];
 		nextfree = ROUNDUP((char *) end, PGSIZE);
 	}
-	if(n==0)
-		return nextfree;
 	
 	// Allocate a chunk large enough to hold 'n' bytes, then update
 	// nextfree.  Make sure nextfree is kept aligned
 	// to a multiple of PGSIZE.
 	//
 	// LAB 2: Your code here.
-	result = nextfree;
-	if(n>0){
-//		else if (n==0)
-	
-		nextfree = ROUNDUP(nextfree + n, PGSIZE);
-		if(PADDR(nextfree) > npages*PGSIZE)
-	//		mon_backtrace();
-			panic("out of memore mathafaka at :");
-		
-	}
-//	npages += n;
-	return result;
+
+	if(n>0)
+		result = ROUNDUP(nextfree + n * PGSIZE*)
+	return NULL;
 }
 
 // Set up a two-level page table:
 //    kern_pgdir is its linear (virtual) address of the root
 //
 // This function only sets up the kernel part of the address space
-// (ie. addresses >= ]UTOP).  The user part of the address space
+// (ie. addresses >= UTOP).  The user part of the address space
 // will be set up later.
 //
 // From UTOP to ULIM, the user is allowed to read but not write.
@@ -137,7 +127,7 @@ mem_init(void)
 	i386_detect_memory();
 
 	// Remove this line when you're ready to test this function.
-	/*panic("mem_init: This function is not finished\n");*/
+	panic("mem_init: This function is not finished\n");
 
 	//////////////////////////////////////////////////////////////////////
 	// create initial page directory.
@@ -160,8 +150,7 @@ mem_init(void)
 	// array.  'npages' is the number of physical pages in memory.  Use memset
 	// to initialize all fields of each struct PageInfo to 0.
 	// Your code goes here:
-	pages = (struct PageInfo*)boot_alloc(sizeof(struct PageInfo) * npages);
-	memset(pages ,0 ,sizeof(struct PageInfo)*npages);
+
 
 	//////////////////////////////////////////////////////////////////////
 	// Now that we've allocated the initial kernel data structures, we set
@@ -265,25 +254,11 @@ page_init(void)
 	// NB: DO NOT actually touch the physical memory corresponding to
 	// free pages!
 	size_t i;
-
-
-//	size_t HOLE_PG= (IOPHYSMEM) ;
-	
-	//RETURN FIRST FREE BYTE
-	char* end_of_kernel = boot_alloc(0);
-	
-//	pages[0].pp_ref = 1;
-	for (i=1 ; i < npages; i++) {
-		if(page2pa(&pages[i])>= IOPHYSMEM &&(char*) page2kva(&pages[i]) < end_of_kernel){
-			pages[i].pp_ref = 1;
-			pages[i].pp_link = NULL;
-			continue;
-		}
+	for (i = 0; i < npages; i++) {
 		pages[i].pp_ref = 0;
 		pages[i].pp_link = page_free_list;
 		page_free_list = &pages[i];
 	}
-
 }
 
 //
@@ -302,18 +277,7 @@ struct PageInfo *
 page_alloc(int alloc_flags)
 {
 	// Fill this function in
-	/*if free list is emptzy retrun null*/
-	if(!page_free_list)
-		return NULL;
-	
-	struct PageInfo *alloc_page = page_free_list;
-	page_free_list = alloc_page->pp_link;
-	alloc_page->pp_link = NULL;
-	if(alloc_flags & ALLOC_ZERO){
-		uint32_t* _VAallocPage = page2kva(alloc_page);	
-		memset(_VAallocPage, '\0',PGSIZE);
-	}
-	return alloc_page;
+	return 0;
 }
 
 //
@@ -326,11 +290,6 @@ page_free(struct PageInfo *pp)
 	// Fill this function in
 	// Hint: You may want to panic if pp->pp_ref is nonzero or
 	// pp->pp_link is not NULL.
-	if(pp->pp_ref || pp->pp_link )
-		panic("page_free_list is not empty");
-
-	pp->pp_link = page_free_list;
-	page_free_list = pp;
 }
 
 //
