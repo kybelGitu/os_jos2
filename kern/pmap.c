@@ -186,6 +186,7 @@ mem_init(void)
 	//      (ie. perm = PTE_U | PTE_P)
 	//    - pages itself -- kernel RW, user NONE
 	// Your code goes here:
+	boot_map_region(kern_pgdir, UPAGES
 
 	//////////////////////////////////////////////////////////////////////
 	// Use the physical memory that 'bootstack' refers to as the kernel
@@ -302,12 +303,13 @@ page_init(void)
 struct PageInfo *
 page_alloc(int alloc_flags)
 {
+	struct PageInfo *alloc_page;
 	// Fill this function in
 	/*if free list is emptzy retrun null*/
 	if(!page_free_list)
 		return NULL;
 	
-	struct PageInfo *alloc_page = page_free_list;
+	alloc_page = page_free_list;
 	page_free_list = alloc_page->pp_link;
 	alloc_page->pp_link = NULL;
 	if(alloc_flags & ALLOC_ZERO){
@@ -365,30 +367,45 @@ page_decref(struct PageInfo* pp)
 // directory more permissive than strictly necessary.
 //
 // Hint 3: look at inc/mmu.h for useful macros that manipulate page
-// table and page directory entries.
+// table AND PAGE DIRECTORY ENTRIES.
 //
 pte_t *
 pgdir_walk(pde_t *pgdir, const void *va, int create)
 {
 	// Fill this function in
-	pte_t *page_table = (pte_t*)pgdir[PDX(va)];
-//	pte_t *page_entry = page_table[PTX(va)];
+	uint32_t index = PDX(va), T_index = PTX(va);
+	pde_t *page_dir_entry= (pde_t*)&pgdir[PDX(va)];//dir[index]=dir_entry
+	cprintf("printujem adress page dir entry FYZ ADDR ->> : %x '\n'", PADDR(page_dir_entry));
+	pte_t *page_table_entry = NULL;// = page_table[PTX(va)];
 	
-	if(!((int) page_table & PTE_P)){
+	if(!((int)PGOFF(*page_dir_entry) & PTE_P)){
 		if(!create)
 			return NULL;
 		else {
 //			page_entry = page_alloc(PTE_P | PTE_W | PTE_U);
 			struct PageInfo *newPage =  page_alloc(ALLOC_ZERO);
-			if(!newPage)
+			if(newPage==NULL)
 				return NULL;
 			newPage->pp_ref++;
-		//	pgdir[PDX(va)] = page2pa(newPage) | PTE_U | PTE_W;
+			physaddr_t paddr = (physaddr_t) page2pa(newPage);
+			pgdir[PDX(va)] = paddr | PTE_P | PTE_U | PTE_W;
+
+
 		
-			page_table =(pte_t*) (page2pa(newPage) | PTE_U | PTE_W);
+//			page_table_entry = (pte_t*) (page2pa(newPage) | PTE_U | PTE_W);
 		}
 	}
-	return (pte_t*) KADDR((uint32_t)page_table )+ page_table[PTX(va)];
+	
+//	uint32_t T_index= PTX(va
+	uintptr_t *va_page_table = KADDR(PTE_ADDR( *page_dir_entry ) );	
+//	page_table_entry=KADDR( (pte_t*)PTE_ADDR( page_dir_entry )+ T_index;
+	page_table_entry=(pte_t*)(va_page_table + (uintptr_t )T_index);
+		
+		
+	
+/*	return (pte_t*) KADDR((uint32_t)page_table )+ page_table[PTX(va)];
+	return (pte_t*) KADDR((uint32_t)page_table )+ page_table[PTX(va)];*/
+	return page_table_entry;
 			
 }
 
@@ -448,9 +465,13 @@ page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 	if (!pageTable) 	
 		return -E_NO_MEM;	
 	pp->pp_ref++;	
-	if (*pageTable& PTE_P) 	
+	if (*pageTable & PTE_P) 	
 		page_remove(pgdir, va);
-	*pageTable= page2pa(pp) | perm | PTE_P;
+	
+	//PageInfo *page= (uint32_t*)(page2pa(pp) | perm | PTE_P);
+	
+	*pageTable = page2pa(pp) | perm | PTE_P;
+	tlb_invalidate(pgdir, va);
 	return 0;
 }
 
