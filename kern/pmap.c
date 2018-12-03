@@ -186,12 +186,18 @@ mem_init(void)
 	//      (ie. perm = PTE_U | PTE_P)
 	//    - pages itself -- kernel RW, user NONE
 	// Your code goes here:
-	boot_map_region(kern_pgdir, UPAGES
+	//boot_map_region(kern_pgdir, UPAGES, sizeof(pages)*PGSIZE, page2pa(pages),
+ 	//PTE_W | PTE_U | PTE_P);
+	boot_map_region(kern_pgdir, UPAGES, npages*sizeof(struct PageInfo), PADDR(pages),
+        PTE_W );
+
+	
 
 	//////////////////////////////////////////////////////////////////////
 	// Use the physical memory that 'bootstack' refers to as the kernel
 	// stack.  The kernel stack grows down from virtual address KSTACKTOP.
 	// We consider the entire range from [KSTACKTOP-PTSIZE, KSTACKTOP)
+
 	// to be the kernel stack, but break this into two pieces:
 	//     * [KSTACKTOP-KSTKSIZE, KSTACKTOP) -- backed by physical memory
 	//     * [KSTACKTOP-PTSIZE, KSTACKTOP-KSTKSIZE) -- not backed; so if
@@ -199,6 +205,10 @@ mem_init(void)
 	//       overwrite memory.  Known as a "guard page".
 	//     Permissions: kernel RW, user NONE
 	// Your code goes here:
+	boot_map_region(kern_pgdir,KSTACKTOP-KSTKSIZE ,KSTKSIZE,
+	PADDR(bootstack), PTE_W);
+//	cprintf("paddr bootstack %x ", PADDR(bootstack) );
+
 
 	//////////////////////////////////////////////////////////////////////
 	// Map all of physical memory at KERNBASE.
@@ -208,6 +218,8 @@ mem_init(void)
 	// we just set up the mapping anyway.
 	// Permissions: kernel RW, user NONE
 	// Your code goes here:
+	boot_map_region(kern_pgdir,KERNBASE,(size_t)((0xFFFFFFFF - KERNBASE) + 1),
+        0 , PTE_W );
 
 	// Check that the initial page directory has been set up correctly.
 	check_kern_pgdir();
@@ -375,7 +387,7 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 	// Fill this function in
 	uint32_t index = PDX(va), T_index = PTX(va);
 	pde_t *page_dir_entry= (pde_t*)&pgdir[PDX(va)];//dir[index]=dir_entry
-	cprintf("printujem adress page dir entry FYZ ADDR ->> : %x '\n'", PADDR(page_dir_entry));
+//	cprintf("printujem adress page dir entry FYZ ADDR ->> : %x '\n'", PADDR(page_dir_entry));
 	pte_t *page_table_entry = NULL;// = page_table[PTX(va)];
 	
 	if(!((int)PGOFF(*page_dir_entry) & PTE_P)){
