@@ -136,6 +136,7 @@
 /*
  * Macros to build GDT entries in assembly.
  */
+//DEFINICIA PRIESTORU PRE CELY SEGMENT
 #define SEG_NULL						\
 	.word 0, 0;						\
 	.byte 0, 0, 0, 0
